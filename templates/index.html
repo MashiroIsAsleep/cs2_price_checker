@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CS2 Price Checker</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    input { width: 300px; margin-bottom: 10px; }
+    button { padding: 8px 16px; }
+    table { border-collapse: collapse; margin-top: 20px; }
+    td, th { border: 1px solid #ccc; padding: 8px 12px; }
+  </style>
+</head>
+<body>
+  <h1>CS2 Skin Price Checker</h1>
+  <form id="priceForm">
+    <label>Skin Name:<br>
+      <input type="text" name="skin_name" required>
+    </label><br>
+    <label>Wear (optional):<br>
+      <input type="text" name="wear" placeholder="Factory New, Field-Tested...">
+    </label><br>
+    <label>Float (optional):<br>
+      <input type="text" name="float_value" placeholder="e.g. 0.13">
+    </label><br>
+    <label>Paint Seed (optional):<br>
+      <input type="text" name="paint_seed" placeholder="e.g. 690">
+    </label><br>
+    <button type="submit">Check Price</button>
+  </form>
+
+  <h2>Result:</h2>
+  <div id="result"></div>
+
+  <script>
+    const form = document.getElementById('priceForm');
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const res = await fetch("/check_price", {
+        method: "POST",
+        body: formData
+      });
+      const data = await res.json();
+      const result = document.getElementById('result');
+      if (!data.success) {
+        result.innerHTML = `<p style="color:red;">Error: ${data.error}</p>`;
+        return;
+      }
+
+      // Display nicely
+      if (data.data.all_wears) {
+        let html = `<table><tr><th>Wear</th><th>Price (USD)</th></tr>`;
+        data.data.all_wears.forEach(w => {
+          html += `<tr><td>${w.wear}</td><td>$${w.price.toFixed(2)}</td></tr>`;
+        });
+        html += `</table><p><strong>Average Price:</strong> $${data.data.average_price.toFixed(2)}</p>`;
+        result.innerHTML = html;
+      } else {
+        result.innerHTML = `
+          <p><strong>Expected Price:</strong> $${data.data.expected_price.toFixed(2)}</p>
+          <p><strong>Steam Lowest:</strong> $${data.data.steam_lowest?.toFixed(2) ?? 'N/A'}</p>
+          <p><strong>Steam Median:</strong> $${data.data.steam_median?.toFixed(2) ?? 'N/A'}</p>
+          ${data.data.float_adjusted ? `<p><strong>Float Adjusted:</strong> $${data.data.float_adjusted.toFixed(2)}</p>` : ''}
+        `;
+      }
+    };
+  </script>
+</body>
+</html>
